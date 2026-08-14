@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  >
+
+  <title>Leitor de EAN</title>
+
+  <script
+    src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js">
+  </script>
+
+  <style>
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      color: #222;
+      padding: 20px;
+    }
+
+    .caixa {
+      width: 100%;
+      max-width: 520px;
+      margin: auto;
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.10);
+    }
+
+    h1 {
+      margin-top: 0;
+      text-align: center;
+    }
+
+    .instrucao {
+      text-align: center;
+      color: #666;
+      margin-bottom: 18px;
+    }
+
+    #reader {
+      width: 100%;
+    }
+
+    #mensagem {
+      margin-top: 16px;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    #fechar {
+      width: 100%;
+      margin-top: 18px;
+      border: none;
+      border-radius: 8px;
+      padding: 13px;
+      background: #6b7280;
+      color: white;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+  </style>
+
+</head>
+
+
+<body>
+
+  <div class="caixa">
+
+    <h1>
+      Ler EAN
+    </h1>
+
+    <div class="instrucao">
+      Aponte a câmera para o código de barras do produto.
+    </div>
+
+    <div id="reader"></div>
+
+    <div id="mensagem">
+      Abrindo câmera...
+    </div>
+
+    <button
+      id="fechar"
+      type="button"
+      onclick="voltarSemLeitura()"
+    >
+      CANCELAR
+    </button>
+
+  </div>
+
+
+  <script>
+
+    const parametros =
+      new URLSearchParams(
+        window.location.search
+      );
+
+    const retorno =
+      parametros.get("retorno") || "";
+
+    let scanner = null;
+
+    let processando = false;
+
+
+    function iniciar() {
+
+      const mensagem =
+        document.getElementById("mensagem");
+
+      scanner =
+        new Html5Qrcode(
+          "reader"
+        );
+
+
+      scanner
+        .start(
+
+          {
+            facingMode:
+              "environment"
+          },
+
+          {
+            fps: 10,
+
+            qrbox: {
+              width: 320,
+              height: 120
+            },
+
+            formatsToSupport: [
+
+              Html5QrcodeSupportedFormats.EAN_13,
+
+              Html5QrcodeSupportedFormats.EAN_8,
+
+              Html5QrcodeSupportedFormats.UPC_A,
+
+              Html5QrcodeSupportedFormats.UPC_E
+
+            ]
+
+          },
+
+          function(codigo) {
+
+            if (processando) {
+              return;
+            }
+
+            processando = true;
+
+
+            const ean =
+              String(codigo)
+                .replace(/\D/g, "");
+
+
+            mensagem.style.color =
+              "#16a34a";
+
+            mensagem.innerText =
+              "EAN lido: " + ean;
+
+
+            scanner
+              .stop()
+              .then(function() {
+
+                retornarEan(ean);
+
+              })
+              .catch(function() {
+
+                retornarEan(ean);
+
+              });
+
+          },
+
+          function() {
+            // Ignora tentativas sem leitura.
+          }
+
+        )
+
+        .then(function() {
+
+          mensagem.style.color =
+            "#16a34a";
+
+          mensagem.innerText =
+            "Câmera ativa.";
+
+        })
+
+        .catch(function(erro) {
+
+          mensagem.style.color =
+            "#dc2626";
+
+          mensagem.innerText =
+            "Não foi possível abrir a câmera.";
+
+          console.error(erro);
+
+        });
+
+    }
+
+
+    function retornarEan(ean) {
+
+      if (!retorno) {
+
+        document
+          .getElementById("mensagem")
+          .innerText =
+            "EAN lido: " + ean;
+
+        return;
+
+      }
+
+
+      const separador =
+        retorno.includes("?")
+          ? "&"
+          : "?";
+
+
+      window.location.href =
+        retorno +
+        separador +
+        "ean=" +
+        encodeURIComponent(ean);
+
+    }
+
+    function voltarSemLeitura() {
+
+      if (retorno) {
+
+        window.location.href =
+          retorno;
+
+      } else {
+
+        window.history.back();
+
+      }
+
+    }
+
+    iniciar();
+
+  </script>
+
+</body>
+
+</html>
